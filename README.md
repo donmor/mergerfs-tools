@@ -133,6 +133,12 @@ optional arguments:
                          * different-time : have different mtimes
                          * same-hash      : have the same md5sum
                          * different-hash : have different md5sums
+  -h, --hash=            Hashers used with -i (default: md5). Possible to
+                         use multiple hashers in turn (separated by commas).
+                         Available values: sha1, sha224, sha256, sha384,
+                         sha512, sha3_224, sha3_256, sha3_384, sha3_512,
+                         shake_128, shake_256, blake2b, blake2, md5,
+                         adler32, crc32.
   -d, --dedup=           What file to *keep* (default: newest)
                          * manual        : ask user
                          * oldest        : file with smallest mtime
