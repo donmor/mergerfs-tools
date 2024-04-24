@@ -496,15 +496,15 @@ def buildargparser():
                                  'same-hash','diff-hash',
                                  'same-short-hash',
                                  'diff-short-hash'])
-    parser.add_argument('-h','--hash',
+    parser.add_argument('-H','--hash',
                         type=str,
                         choices=['sha1', 'sha224', 'sha256', 'sha384',
                                  'sha512', 'sha3_224', 'sha3_256',
                                  'sha3_384', 'sha3_512', 'shake_128',
                                  'shake_256', 'blake2b', 'blake2',
                                  'md5', 'adler32', 'crc32'],
-                       action='append',
-                       default=[])
+                        action='append',
+                        default=[])
     parser.add_argument('-d','--dedup',
                         choices=['manual',
                                  'oldest','newest',
@@ -517,6 +517,7 @@ def buildargparser():
     parser.add_argument('-e','--execute',
                         action='store_true')
     parser.add_argument('-I','--include',
+                        type=str,
                         action='append',
                         default=[])
     parser.add_argument('-E','--exclude',
@@ -564,7 +565,7 @@ def main():
     excludes  = args.exclude
     if args.hash:
         global _hashers
-        _hashers  = args.hash
+        _hashers = args.hash
 
     total_size = 0
     try:
