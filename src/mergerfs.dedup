@@ -29,7 +29,7 @@ import zlib
 
 # pseudo hasher for crc32 / adler32
 class p_hasher:
-    _alg = ''
+    _alg = None
     _dg = ''
     def __init__(self, alg='crc32'):
         self._alg = zlib.adler32 if alg == 'adler32' else zlib.crc32
