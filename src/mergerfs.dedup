@@ -29,19 +29,19 @@ import zlib
 
 # pseudo hasher for crc32 / adler32
 class p_hasher:
-    _alg = None
-    _data = bytearray()
+    _alg = ''
+    _dg = ''
     def __init__(self, alg='crc32'):
         self._alg = zlib.adler32 if alg == 'adler32' else zlib.crc32
     def update(self, data):
-        self._data.extend(data)
+        self._dg += str(self._alg(data))
     def hexdigest(self):
-        return _alg(bytes(_data))
+        return self._dg
 
 _libc = ctypes.CDLL("libc.so.6",use_errno=True)
 _lgetxattr = _libc.lgetxattr
 _lgetxattr.argtypes = [ctypes.c_char_p,ctypes.c_char_p,ctypes.c_void_p,ctypes.c_size_t]
-_hashers = [hashlib.md5()]
+_hashers = ['md5']
 def lgetxattr(path,name):
     if type(path) == str:
         path = path.encode(errors='backslashreplace')
@@ -199,9 +199,11 @@ def size_any(size,stats):
 
 def hashes_all(stats):
     if size_all(stats):
-        for hasher in _hashers:
-            hashval = hash_file(stats[0][0])
-            if not all(hash_file(path) == hashval for (path,st) in stats[1:]):
+        if not short_hashes_all(stats):
+            return False
+        for h in _hashers:
+            hashval = hash_file(stats[0][0], p_hasher(h) if h in ['adler32', 'crc32'] else hashlib.new(h))
+            if not all(hash_file(path, p_hasher(h) if h in ['adler32', 'crc32'] else hashlib.new(h)) == hashval for (path,st) in stats[1:]):
                 return False
         return True
     return False
@@ -209,10 +211,10 @@ def hashes_all(stats):
 
 def short_hashes_all(stats):
     if size_all(stats):
-        for hasher in _hashers:
-            hashval = short_hash_file(stats[0][0], hasher)
-            if not all(short_hash_file(path, hasher) == hashval for (path,st) in stats[1:]):
-            return False
+        for h in _hashers:
+            hashval = short_hash_file(stats[0][0], p_hasher(h) if h in ['adler32', 'crc32'] else hashlib.new(h))
+            if not all(short_hash_file(path, p_hasher(h) if h in ['adler32', 'crc32'] else hashlib.new(h)) == hashval for (path,st) in stats[1:]):
+                return False
         return True
     return False
 
@@ -446,8 +448,8 @@ optional arguments:
                          * diff-short-hash : have different short hashes
                          'hash' is expensive. 'short-hash' far less
                          expensive, not as safe, but pretty good.
-  -h, --hash=            Hashers used with -i (default: md5). Possible to
-                         use multiple hashers in turn (separated by commas).
+  -H, --hash=            Hashers used with -i (default: md5).
+                         Can be used multiple times, used in turn.
                          Available values: sha1, sha224, sha256, sha384,
                          sha512, sha3_224, sha3_256, sha3_384, sha3_512,
                          shake_128, shake_256, blake2b, blake2, md5,
@@ -495,11 +497,14 @@ def buildargparser():
                                  'same-short-hash',
                                  'diff-short-hash'])
     parser.add_argument('-h','--hash',
+                        type=str,
                         choices=['sha1', 'sha224', 'sha256', 'sha384',
                                  'sha512', 'sha3_224', 'sha3_256',
                                  'sha3_384', 'sha3_512', 'shake_128',
                                  'shake_256', 'blake2b', 'blake2',
-                                 'md5', 'adler32', 'crc32'])
+                                 'md5', 'adler32', 'crc32'],
+                       action='append',
+                       default=[])
     parser.add_argument('-d','--dedup',
                         choices=['manual',
                                  'oldest','newest',
@@ -512,7 +517,6 @@ def buildargparser():
     parser.add_argument('-e','--execute',
                         action='store_true')
     parser.add_argument('-I','--include',
-                        type=str,
                         action='append',
                         default=[])
     parser.add_argument('-E','--exclude',
@@ -559,7 +563,8 @@ def main():
     includes  = ['*'] if not args.include else args.include
     excludes  = args.exclude
     if args.hash:
-        _hashers  = [p_hasher(s) if s in ['adler32', 'crc32'] else hashlib.new(s) for s in arg.hash.split(',')]
+        global _hashers
+        _hashers  = args.hash
 
     total_size = 0
     try:
